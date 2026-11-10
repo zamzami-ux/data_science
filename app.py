@@ -36,6 +36,50 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Custom CSS: Mengganti ikon 'running man' di pojok kanan atas dengan animasi loading lingkaran (circular spinner)
+st.markdown("""
+<style>
+/* Sembunyikan ikon orang berlari (running man) bawaan Streamlit */
+[data-testid="stStatusWidgetRunningManIcon"],
+[data-testid="stStatusWidgetRunningIcon"] svg {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Ubah status running widget menjadi animasi lingkaran berputar (circular spinner) */
+[data-testid="stStatusWidgetRunningIcon"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
+}
+
+[data-testid="stStatusWidgetRunningIcon"]::after {
+    content: "" !important;
+    box-sizing: border-box !important;
+    width: 14px !important;
+    height: 14px !important;
+    border: 2px solid rgba(160, 160, 160, 0.3) !important;
+    border-top: 2px solid #ff4b4b !important;
+    border-radius: 50% !important;
+    animation: stStatusSpin 0.75s linear infinite !important;
+    display: block !important;
+}
+
+@keyframes stStatusSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Kamus nama subskala dalam bahasa Indonesia sesuai spesifikasi
 FEATURE_TRANSLATIONS = {
     'A1': 'Rasa memiliki',
