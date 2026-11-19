@@ -788,8 +788,9 @@ with tab_eda:
 
     with col_hm2:
         corr_sub_only = df_clean[['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C2', 'C3']].corr()
-        np.fill_diagonal(corr_sub_only.values, np.nan)
-        max_inter_corr = corr_sub_only.max().max()
+        corr_arr = corr_sub_only.to_numpy(copy=True)
+        np.fill_diagonal(corr_arr, np.nan)
+        max_inter_corr = float(np.nanmax(corr_arr))
         
         st.markdown("##### 📌 Diagnosis Multikolinearitas:")
         st.markdown(f"""
