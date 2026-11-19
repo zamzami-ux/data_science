@@ -918,6 +918,7 @@ with tab_eda:
 
     sub_features = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C2', 'C3']
     profile_df = df_clean.groupby(target_col)[sub_features].mean().reindex(class_order)
+    profile_df.index.name = "Tingkat Efikasi Diri"
     profile_df['Skor Rata-rata Total'] = profile_df.mean(axis=1)
     profile_df['Jumlah Siswa'] = y.value_counts().reindex(class_order)
 
@@ -926,11 +927,20 @@ with tab_eda:
     for f in sub_features:
         format_dict[f] = '{:.2f}'
 
-    st.dataframe(profile_df[cols_order_prof].style.format(format_dict).highlight_max(
-        subset=sub_features, color='#d4edda', axis=0
-    ).highlight_min(
-        subset=sub_features, color='#f8d7da', axis=0
-    ), use_container_width=True)
+    # Fungsi penanda kontras tinggi (jelas terbaca di Dark Mode & Light Mode)
+    def style_profile_table(df_in):
+        styles = pd.DataFrame('', index=df_in.index, columns=df_in.columns)
+        for col in sub_features:
+            if col in df_in.columns:
+                max_idx = df_in[col].idxmax()
+                min_idx = df_in[col].idxmin()
+                styles.loc[max_idx, col] = 'background-color: #1e8449; color: #ffffff; font-weight: bold;'
+                styles.loc[min_idx, col] = 'background-color: #c0392b; color: #ffffff; font-weight: bold;'
+        return styles
+
+    styled_profile = profile_df[cols_order_prof].style.format(format_dict).apply(style_profile_table, axis=None)
+    st.dataframe(styled_profile, use_container_width=True)
+    st.caption("🟢 *Sel hijau: skor tertinggi per subskala (Kelompok Tinggi). 🔴 Sel merah: skor terendah per subskala (Kelompok Rendah).*")
 
     # Grouped bar chart
     fig_profile, ax_profile = plt.subplots(figsize=(9, 4.2))
@@ -1075,7 +1085,7 @@ with tab_modeling:
             }
             for col_name, max_idx in mapping.items():
                 if col_name in df_in.columns:
-                    styles.loc[max_idx, col_name] = 'background-color: #d4edda; font-weight: bold; color: #155724;'
+                    styles.loc[max_idx, col_name] = 'background-color: #1e8449; font-weight: bold; color: #ffffff;'
             return styles
 
         cols_to_show = ['Model', 'CV Akurasi (Mean ± Std)', 'CV Macro-F1 (Mean ± Std)', 'Test Akurasi', 'Test Macro-F1']
