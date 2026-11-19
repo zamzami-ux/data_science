@@ -22,8 +22,6 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 from sklearn.inspection import permutation_importance
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
 from sklearn.decomposition import PCA
 
 # ==========================================
@@ -479,14 +477,13 @@ baseline_f1 = float(f1_score(y_test, [majority_class] * len(y_test), average='ma
 # ==========================================
 # 6. HEADER UTAMA DAN TAB APLIKASI
 # ==========================================
-st.title("🎓 Testbed Klasifikasi & Klastering Efikasi Diri Siswa")
-st.caption("Pipeline Data Mining End-to-End untuk Memprediksi dan Mengelompokkan Kesiapan Belajar serta Efikasi Diri Siswa SMP/SMA di Indonesia.")
+st.title("🎓 Testbed Klasifikasi Efikasi Diri Akademik Siswa")
+st.caption("Pipeline Data Mining End-to-End untuk Klasifikasi Tingkat Efikasi Diri Akademik Siswa SMP/SMA di Indonesia Berdasarkan Domain Kesiapan Belajar.")
 
-tab_overview, tab_eda, tab_prep, tab_clustering, tab_modeling, tab_eval = st.tabs([
+tab_overview, tab_eda, tab_prep, tab_modeling, tab_eval = st.tabs([
     "📖 Overview",
     "📊 EDA",
     "⚙️ Preprocessing",
-    "🧩 Clustering",
     "🤖 Modeling",
     "📈 Evaluation"
 ])
@@ -688,6 +685,89 @@ with tab_eda:
         'max': '{:.2f}'
     }), use_container_width=True)
 
+    st.markdown("---")
+    # 6. Analisis Reduksi Dimensi & Proyeksi 2D (PCA)
+    st.markdown("#### 6. Proyeksi 2D PCA & Sebaran Multivariat Siswa Berdasarkan Efikasi Diri")
+    st.caption("Mereduksi 8 subskala kesiapan belajar (A1–C3) ke dalam 2 komponen utama (Principal Component) untuk mengeksplorasi separabilitas alami kelas target sebelum pemodelan klasifikasi.")
+
+    col_pca, col_pca_info = st.columns([3, 2])
+    with col_pca:
+        # Standardisasi fitur untuk PCA
+        features_for_pca = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C2', 'C3']
+        X_pca_raw = df_clean[features_for_pca].values
+        X_pca_scaled = StandardScaler().fit_transform(X_pca_raw)
+        
+        pca_model = PCA(n_components=2, random_state=random_seed)
+        coords = pca_model.fit_transform(X_pca_scaled)
+        exp_var = pca_model.explained_variance_ratio_
+
+        fig_pca, ax_pca = plt.subplots(figsize=(6.5, 4.5))
+        pca_colors = {'Rendah': '#e74c3c', 'Sedang': '#f39c12', 'Tinggi': '#2ecc71', 'Sedang-Tinggi': '#3498db'}
+        for cls in class_order:
+            mask = (y == cls)
+            ax_pca.scatter(
+                coords[mask, 0], coords[mask, 1],
+                color=pca_colors.get(cls, '#3498db'),
+                label=f'Kelas {cls}',
+                alpha=0.65, edgecolors='none', s=35
+            )
+
+        ax_pca.set_xlabel(f"PC 1 ({exp_var[0]*100:.1f}% Variance)", fontsize=10, fontweight='bold')
+        ax_pca.set_ylabel(f"PC 2 ({exp_var[1]*100:.1f}% Variance)", fontsize=10, fontweight='bold')
+        ax_pca.set_title("Proyeksi Data Siswa ke Ruang 2D PCA", fontsize=11, fontweight='bold')
+        ax_pca.legend(loc='best', frameon=True, fontsize=9)
+        ax_pca.grid(True, linestyle='--', alpha=0.4)
+        fig_pca.tight_layout()
+        st.pyplot(fig_pca)
+        plt.close(fig_pca)
+
+    with col_pca_info:
+        st.markdown("##### 💡 *Insight* Analisis Multivariat:")
+        st.markdown(f"""
+        - **Total Variansi**: `{(exp_var[0]+exp_var[1])*100:.1f}%` variansi data kesiapan belajar siswa berhasil dirangkum ke dalam 2 komponen utama (*PC 1* & *PC 2*).
+        - **Separabilitas Kelas**: Kelompok siswa dengan Efikasi Diri **Tinggi (Hijau)** dan **Rendah (Merah)** membentuk klaster visual alami yang terpisah di sepanjang sumbu PC 1.
+        - **Kelompok Sedang**: Berada di area transisi antara kelompok rendah dan tinggi, menunjukkan gradien kesiapan belajar yang kontinu.
+        - **Relevansi untuk Klasifikasi**: Bukti visual ini mengonfirmasi bahwa subskala kesiapan belajar memiliki daya pembeda (*discriminative power*) yang kuat sebagai fitur prediktor untuk model klasifikasi *supervised learning*.
+        """)
+
+    st.markdown("---")
+    # 7. Profiling Karakteristik Subskala Berdasarkan Tingkat Efikasi Diri
+    st.markdown("#### 7. Profiling Karakteristik Subskala Berdasarkan Tingkat Efikasi Diri Siswa")
+    st.caption("Perbandingan rata-rata skor kesiapan belajar pada setiap dimensi untuk masing-masing kelompok efikasi diri.")
+
+    sub_features = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C2', 'C3']
+    profile_df = df_clean.groupby(target_col)[sub_features].mean().reindex(class_order)
+    profile_df['Skor Rata-rata Total'] = profile_df.mean(axis=1)
+    profile_df['Jumlah Siswa'] = y.value_counts().reindex(class_order)
+
+    # Format tabel
+    cols_order_prof = ['Jumlah Siswa', 'Skor Rata-rata Total'] + sub_features
+    format_dict = {'Jumlah Siswa': '{:.0f}', 'Skor Rata-rata Total': '{:.2f}'}
+    for f in sub_features:
+        format_dict[f] = '{:.2f}'
+
+    st.dataframe(profile_df[cols_order_prof].style.format(format_dict).highlight_max(
+        subset=sub_features, color='#d4edda', axis=0
+    ).highlight_min(
+        subset=sub_features, color='#f8d7da', axis=0
+    ), use_container_width=True)
+
+    # Grouped bar chart perbandingan profil subskala
+    fig_profile, ax_profile = plt.subplots(figsize=(9, 4.5))
+    profile_df[sub_features].T.plot(
+        kind='bar', ax=ax_profile,
+        color=[pca_colors.get(c, '#3498db') for c in class_order],
+        edgecolor='black', alpha=0.85, width=0.75
+    )
+    ax_profile.set_ylabel("Skor Rata-rata (Skala 1 - 5)", fontsize=10, fontweight='bold')
+    ax_profile.set_xlabel("Subskala Kesiapan Belajar", fontsize=10, fontweight='bold')
+    ax_profile.set_ylim(1.0, 5.2)
+    ax_profile.legend(title="Tingkat Efikasi Diri", loc='upper left', bbox_to_anchor=(1.01, 1))
+    ax_profile.grid(axis='y', linestyle='--', alpha=0.5)
+    fig_profile.tight_layout()
+    st.pyplot(fig_profile)
+    plt.close(fig_profile)
+
 
 # ==========================================
 # TAB 3: PREPROCESSING
@@ -743,227 +823,6 @@ with tab_prep:
     encoded_cat_names = demo_ohe.get_feature_names_out(cat_cols)
     total_dim = len(num_cols) + len(encoded_cat_names)
     st.caption(f"📐 Dimensi input setelah One-Hot Encoding: **{total_dim} kolom** ({len(num_cols)} numerik + {len(encoded_cat_names)} hasil ekspansi kategorik).")
-
-
-# ==========================================
-# TAB: CLUSTERING (UNSUPERVISED LEARNING)
-# ==========================================
-with tab_clustering:
-    st.markdown("### 🧩 Analisis Klastering Siswa (*Unsupervised Learning*)")
-    st.markdown("""
-    Berbeda dengan **Klasifikasi (*Supervised*)** yang memprediksi label target yang sudah diketahui ($C1$), 
-    **Klastering (*Unsupervised*)** bertujuan mengelompokkan 1.182 siswa secara alami berdasarkan kemiripan profil 
-    kesiapan belajar mereka **tanpa menggunakan label target**.
-    """)
-
-    # Kontrol Parameter Klastering
-    col_cl_ctrl1, col_cl_ctrl2, col_cl_ctrl3 = st.columns([1, 1, 2])
-    with col_cl_ctrl1:
-        k_clusters = st.slider("Jumlah Klaster (k):", min_value=2, max_value=7, value=3, step=1,
-                               help="Pilih jumlah kelompok yang diinginkan untuk algoritma K-Means.")
-    with col_cl_ctrl2:
-        include_c1 = st.checkbox("Sertakan Efikasi Diri (C1)?", value=False,
-                                 help="Jika dicentang, dimensi efikasi diri ikut mengelompokkan siswa.")
-    with col_cl_ctrl3:
-        cluster_feature_pool = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C2', 'C3']
-        if include_c1:
-            cluster_feature_pool.append('C1')
-        selected_cluster_features = st.multiselect(
-            "Fitur Subskala untuk Klastering:",
-            options=cluster_feature_pool,
-            default=cluster_feature_pool,
-            help="Pilih subskala yang digunakan sebagai basis penghitungan jarak Euclidean."
-        )
-
-    if len(selected_cluster_features) < 2:
-        st.warning("⚠️ Pilih minimal 2 subskala fitur untuk menjalankan analisis klastering.")
-    else:
-        # Siapkan data untuk klastering
-        X_cl_raw = df_clean[selected_cluster_features].values
-        cl_scaler = StandardScaler()
-        X_cl_scaled = cl_scaler.fit_transform(X_cl_raw)
-
-        # 1. Evaluasi Jumlah Klaster Optimal (Elbow & Silhouette)
-        st.markdown("#### 1. Evaluasi Jumlah Klaster Optimal (Elbow Method & Silhouette Score)")
-        
-        # Hitung metrik evaluasi klaster k=2..7
-        k_eval_range = range(2, 8)
-        inertias = []
-        silhouettes = []
-        for k_val in k_eval_range:
-            km_eval = KMeans(n_clusters=k_val, random_state=random_seed, n_init=10)
-            labels_eval = km_eval.fit_predict(X_cl_scaled)
-            inertias.append(km_eval.inertia_)
-            silhouettes.append(silhouette_score(X_cl_scaled, labels_eval))
-
-        col_ev_cl1, col_ev_cl2 = st.columns(2)
-        with col_ev_cl1:
-            fig_elbow, ax_elbow = plt.subplots(figsize=(6, 3.8))
-            ax_elbow.plot(k_eval_range, inertias, marker='o', color='#2980b9', linewidth=2, markersize=7)
-            chosen_inertia = inertias[k_clusters - 2]
-            ax_elbow.plot(k_clusters, chosen_inertia, marker='o', color='red', markersize=11, label=f'k={k_clusters} (Aktif)')
-            ax_elbow.set_xlabel("Jumlah Klaster (k)", fontsize=10, fontweight='bold')
-            ax_elbow.set_ylabel("Inertia (Sum of Squared Distances)", fontsize=10, fontweight='bold')
-            ax_elbow.set_title("Elbow Method (Titik Siku)", fontsize=11, fontweight='bold')
-            ax_elbow.grid(True, linestyle='--', alpha=0.5)
-            ax_elbow.legend()
-            fig_elbow.tight_layout()
-            st.pyplot(fig_elbow)
-            plt.close(fig_elbow)
-
-        with col_ev_cl2:
-            fig_sil, ax_sil = plt.subplots(figsize=(6, 3.8))
-            ax_sil.plot(k_eval_range, silhouettes, marker='s', color='#27ae60', linewidth=2, markersize=7)
-            chosen_sil = silhouettes[k_clusters - 2]
-            ax_sil.plot(k_clusters, chosen_sil, marker='s', color='red', markersize=11, label=f'k={k_clusters} (Score: {chosen_sil:.3f})')
-            ax_sil.set_xlabel("Jumlah Klaster (k)", fontsize=10, fontweight='bold')
-            ax_sil.set_ylabel("Silhouette Coefficient", fontsize=10, fontweight='bold')
-            ax_sil.set_title("Silhouette Score (Kerapatan Klaster)", fontsize=11, fontweight='bold')
-            ax_sil.grid(True, linestyle='--', alpha=0.5)
-            ax_sil.legend()
-            fig_sil.tight_layout()
-            st.pyplot(fig_sil)
-            plt.close(fig_sil)
-
-        # 2. Eksekusi K-Means pada k terpilih
-        km_model = KMeans(n_clusters=k_clusters, random_state=random_seed, n_init=10)
-        cluster_labels = km_model.fit_predict(X_cl_scaled)
-        
-        df_clustering = df_clean.copy()
-        df_clustering['Klaster'] = [f"Klaster {lbl+1}" for lbl in cluster_labels]
-        df_clustering['Klaster_Num'] = cluster_labels
-
-        st.markdown("---")
-        st.markdown(f"#### 2. Visualisasi Proyeksi 2D (PCA) & Distribusi Klaster (k = {k_clusters})")
-
-        col_pca, col_size = st.columns([3, 2])
-        with col_pca:
-            # PCA 2 Dimensi untuk visualisasi
-            pca_model = PCA(n_components=2, random_state=random_seed)
-            coords = pca_model.fit_transform(X_cl_scaled)
-            exp_var = pca_model.explained_variance_ratio_
-
-            fig_pca, ax_pca = plt.subplots(figsize=(6.5, 4.5))
-            cmap_custom = plt.colormaps.get_cmap('tab10')
-            for c_idx in range(k_clusters):
-                mask = cluster_labels == c_idx
-                ax_pca.scatter(
-                    coords[mask, 0], coords[mask, 1],
-                    color=cmap_custom(c_idx), label=f'Klaster {c_idx+1}',
-                    alpha=0.65, edgecolors='none', s=35
-                )
-
-            # Centroid dalam koordinat PCA
-            centers_pca = pca_model.transform(km_model.cluster_centers_)
-            ax_pca.scatter(
-                centers_pca[:, 0], centers_pca[:, 1],
-                marker='X', color='black', s=160, linewidths=1.5,
-                edgecolors='white', label='Centroid'
-            )
-            ax_pca.set_xlabel(f"PC 1 ({exp_var[0]*100:.1f}% Variance)", fontsize=10, fontweight='bold')
-            ax_pca.set_ylabel(f"PC 2 ({exp_var[1]*100:.1f}% Variance)", fontsize=10, fontweight='bold')
-            ax_pca.set_title("Proyeksi Data Siswa ke Ruang 2D PCA", fontsize=11, fontweight='bold')
-            ax_pca.legend(loc='best', frameon=True, fontsize=9)
-            ax_pca.grid(True, linestyle='--', alpha=0.4)
-            fig_pca.tight_layout()
-            st.pyplot(fig_pca)
-            plt.close(fig_pca)
-
-        with col_size:
-            # Distribusi Jumlah Siswa per Klaster
-            cl_counts = df_clustering['Klaster'].value_counts().sort_index()
-            fig_cl_bar, ax_cl_bar = plt.subplots(figsize=(5, 4.5))
-            bars_c = ax_cl_bar.bar(cl_counts.index, cl_counts.values,
-                                   color=[cmap_custom(i) for i in range(len(cl_counts))],
-                                   edgecolor='black', alpha=0.85)
-            for bar in bars_c:
-                h = bar.get_height()
-                p = (h / len(df_clustering)) * 100
-                ax_cl_bar.annotate(f"{h}\n({p:.1f}%)",
-                                  xy=(bar.get_x() + bar.get_width() / 2, h),
-                                  xytext=(0, 4), textcoords="offset points",
-                                  ha='center', va='bottom', fontsize=9, fontweight='bold')
-            ax_cl_bar.set_ylabel("Jumlah Siswa", fontsize=10, fontweight='bold')
-            ax_cl_bar.set_ylim(0, max(cl_counts.values) * 1.25)
-            ax_cl_bar.set_title("Distribusi Ukuran Klaster", fontsize=11, fontweight='bold')
-            ax_cl_bar.grid(axis='y', linestyle='--', alpha=0.4)
-            fig_cl_bar.tight_layout()
-            st.pyplot(fig_cl_bar)
-            plt.close(fig_cl_bar)
-
-        st.markdown("---")
-        # 3. Profiling Karakteristik Tiap Klaster
-        st.markdown("#### 3. Profiling & Karakteristik Subskala Tiap Klaster")
-        
-        # Hitung rata-rata tiap subskala pada data asli
-        profile_df = df_clustering.groupby('Klaster')[selected_cluster_features].mean()
-        profile_df['Skor Rata-rata Total'] = profile_df.mean(axis=1)
-        profile_df['Jumlah Siswa'] = cl_counts
-
-        # Interpretasi Arketipe Klaster secara otomatis
-        def assign_archetype(row):
-            overall = row['Skor Rata-rata Total']
-            if overall >= 4.2:
-                return "🌟 Kesiapan Belajar Unggul / Mandiri"
-            elif overall >= 3.6:
-                return "🌱 Kesiapan Belajar Sedang / Berkembang"
-            else:
-                return "⚠️ Kesiapan Rendah / Butuh Pendampingan"
-
-        profile_df['Karakteristik Profil'] = profile_df.apply(assign_archetype, axis=1)
-        
-        cols_order_prof = ['Karakteristik Profil', 'Jumlah Siswa', 'Skor Rata-rata Total'] + selected_cluster_features
-        format_dict = {'Jumlah Siswa': '{:.0f}', 'Skor Rata-rata Total': '{:.2f}'}
-        for f in selected_cluster_features:
-            format_dict[f] = '{:.2f}'
-
-        st.dataframe(profile_df[cols_order_prof].style.format(format_dict).highlight_max(
-            subset=selected_cluster_features, color='#d4edda', axis=0
-        ), use_container_width=True)
-
-        # Grouped bar chart untuk perbandingan visual profil
-        fig_profile, ax_profile = plt.subplots(figsize=(9, 4.5))
-        profile_df[selected_cluster_features].T.plot(kind='bar', ax=ax_profile, colormap='tab10',
-                                                     edgecolor='black', alpha=0.85, width=0.75)
-        ax_profile.set_ylabel("Skor Rata-rata (Skala 1 - 5)", fontsize=10, fontweight='bold')
-        ax_profile.set_xlabel("Subskala Kesiapan Belajar", fontsize=10, fontweight='bold')
-        ax_profile.set_ylim(1.0, 5.2)
-        ax_profile.legend(title="Kelompok Klaster", loc='upper left', bbox_to_anchor=(1.01, 1))
-        ax_profile.grid(axis='y', linestyle='--', alpha=0.5)
-        fig_profile.tight_layout()
-        st.pyplot(fig_profile)
-        plt.close(fig_profile)
-
-        st.markdown("---")
-        # 4. Validasi Silang: Hubungan Klaster Unsupervised vs Efikasi Diri Supervised
-        st.markdown("#### 4. Hubungan Klaster Alami (*Unsupervised*) dengan Label Efikasi Diri (*Supervised*)")
-        st.caption("Mengecek apakah pengelompokan tanpa label ini secara alami membedakan tingkat efikasi diri siswa (Rendah, Sedang, Tinggi).")
-
-        col_cross1, col_cross2 = st.columns([1, 1])
-        with col_cross1:
-            ct_cl_target = pd.crosstab(df_clustering['Klaster'], df_clustering[target_col])[class_order]
-            st.markdown("##### Tabel Kontingensi (Jumlah Siswa):")
-            st.dataframe(ct_cl_target, use_container_width=True)
-
-        with col_cross2:
-            st.markdown("##### Komposisi Tingkat Efikasi Diri per Klaster:")
-            ct_cl_norm = pd.crosstab(df_clustering['Klaster'], df_clustering[target_col], normalize='index')[class_order] * 100
-            fig_cross, ax_cross = plt.subplots(figsize=(5.5, 3.8))
-            colors_ct = ['#e74c3c', '#f39c12', '#2ecc71'] if is_3_class else ['#e74c3c', '#3498db']
-            ct_cl_norm.plot(kind='bar', stacked=True, ax=ax_cross, color=colors_ct, edgecolor='black', alpha=0.85)
-            ax_cross.set_ylabel("Persentase (%)", fontsize=10, fontweight='bold')
-            ax_cross.set_xlabel("Klaster", fontsize=10, fontweight='bold')
-            ax_cross.set_ylim(0, 105)
-            ax_cross.legend(title="Efikasi Diri", loc='upper right', frameon=True)
-            ax_cross.grid(axis='y', linestyle='--', alpha=0.4)
-            fig_cross.tight_layout()
-            st.pyplot(fig_cross)
-            plt.close(fig_cross)
-
-        st.info("""
-        💡 **Kesimpulan Klastering**:
-        Meskipun K-Means dijalankan tanpa melihat label target sama sekali (*unsupervised*), klaster yang memiliki rata-rata kesiapan belajar tinggi (misal *Klaster 1 / Unggul*) secara konsisten didominasi oleh siswa dengan tingkat Efikasi Diri **Tinggi**. Sebaliknya, klaster dengan kesiapan belajar terendah didominasi oleh tingkat Efikasi Diri **Rendah**. Ini membuktikan secara kuat bahwa domain kesiapan belajar berkorespondensi langsung dengan rasa percaya diri akademik siswa.
-        """)
 
 
 # ==========================================

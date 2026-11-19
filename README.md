@@ -19,18 +19,17 @@ Penelitian dan aplikasi ini bertujuan untuk memetakan dan mengklasifikasikan tin
    - Perhitungan agregat subskala dan pembentukan target tercile (C1).
 2. **📊 Eksplorasi Data Interaktif (EDA)**:
    - Distribusi target efikasi diri akademik.
-   - Korelasi subskala dengan target efikasi diri.
-   - Perbandingan proporsi jenjang sekolah (SMP vs SMA).
+   - Korelasi subskala dengan target efikasi diri (C1).
+   - Proporsi kelas per jenjang sekolah (SMP vs SMA).
    - Heatmap korelasi Pearson antar-subskala.
-3. **🧩 Analisis Klastering Siswa (Unsupervised Learning)**:
-   - Evaluasi klaster optimal dengan *Elbow Method* dan *Silhouette Score*.
-   - Proyeksi 2D menggunakan Principal Component Analysis (PCA).
-   - *Profiling* karakteristik siswa tiap klaster.
-4. **🤖 Pelatihan & Perbandingan Model (Supervised Learning)**:
+   - Statistik deskriptif skor subskala.
+   - **Proyeksi 2D PCA & Sebaran Multivariat**: Reduksi dimensi untuk analisis separabilitas visual siswa berdasarkan tingkat efikasi diri.
+   - **Profiling Subskala**: Karakteristik rata-rata dimensi kesiapan belajar berdasarkan tingkat efikasi diri.
+3. **🤖 Pelatihan & Perbandingan Model (Supervised Learning)**:
    - Evaluasi 5 algoritma klasifikasi: Logistic Regression, Random Forest, Gradient Boosting, SVM (RBF), dan K-Nearest Neighbors (KNN).
    - Evaluasi menggunakan *Stratified 5-Fold Cross-Validation*.
    - Metrik komparasi: Test Macro-F1, Akurasi, Balanced Accuracy, dan Cohen's Kappa.
-5. **📈 Evaluasi Mendalam & Simulator Prediksi**:
+4. **📈 Evaluasi Mendalam & Simulator Prediksi**:
    - Confusion Matrix & Classification Report per kelas.
    - *Permutation Feature Importance*.
    - **Simulator Interaktif**: Prediksi tingkat efikasi diri siswa baru secara *real-time* lengkap dengan distribusi probabilitas kelas.
@@ -95,6 +94,6 @@ Aplikasi akan terbuka otomatis di browser Anda di `http://localhost:8501`.
 ## 📚 Pustaka yang Digunakan
 - **[Streamlit](https://streamlit.io/)** — Kerangka kerja web UI interaktif
 - **[Pandas](https://pandas.pydata.org/)** & **[NumPy](https://numpy.org/)** — Manipulasi dan analisis data
-- **[Scikit-Learn](https://scikit-learn.org/)** — Pipeline preprocessing, klastering, dan model klasifikasi
+- **[Scikit-Learn](https://scikit-learn.org/)** — Pipeline preprocessing, reduksi dimensi PCA, dan model klasifikasi
 - **[Matplotlib](https://matplotlib.org/)** — Visualisasi data dan grafik statistik
 - **[OpenPyXL](https://openpyxl.readthedocs.io/)** — Parser pembacaan berkas Excel (.xlsx)
