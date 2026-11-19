@@ -797,7 +797,7 @@ with tab_eda:
         - **Korelasi Antar-Fitur Tertinggi**: `r = {max_inter_corr:.2f}` (antara B1 dan B2).
         - **Ambang Batas Multikolinearitas**: Nilai $r < 0.85$ menandakan data **bebas dari masalah multikolinearitas berat**.
         - **Keterpaduan Domain**:
-          - Subskala dalam domain yang sama (misal B1, B2, B3 pada domain Perilaku) memiliki korelasi alami moderat ($r \approx 0.50 - 0.70$).
+          - Subskala dalam domain yang sama (misal B1, B2, B3 pada domain Perilaku) memiliki korelasi alami moderat (r ≈ 0.50 – 0.70).
           - Fitur tetap saling melengkapi (*complementary*) dan memberikan informasi unik, sehingga algoritma linier (seperti *Logistic Regression*) maupun berbasis *tree* (*Random Forest*, *Gradient Boosting*) akan stabil dalam mengestimasi bobot fitur.
         """)
 
@@ -962,7 +962,7 @@ with tab_eda:
     Berikut adalah poin-poin utama hasil eksplorasi data yang menjadi landasan teoritis dan teknis untuk tahapan pemodelan:
     
     1. **Distribusi Kelas yang Seimbang**: Pembagian kuantil/tercile menghasilkan proporsi kelas yang berimbang, sehingga model klasifikasi tidak terdistorsi oleh masalah ketidakseimbangan kelas (*imbalanced data*).
-    2. **Prediktor Berpengaruh Kuat**: Subskala **B1 (Ketekunan)** ($r \approx 0.71$) dan **C2 (Nilai/Manfaat Belajar)** ($r \approx 0.69$) terbukti memiliki hubungan linear terkuat dengan efikasi diri akademik ($C1$).
+    2. **Prediktor Berpengaruh Kuat**: Subskala **B1 (Ketekunan)** (r ≈ 0.71) dan **C2 (Nilai/Manfaat Belajar)** (r ≈ 0.69) terbukti memiliki hubungan linear terkuat dengan efikasi diri akademik (C1).
     3. **Bebas Masalah Multikolinearitas Ekstrem**: Nilai korelasi tertinggi antar-fitur prediktor berada di angka $r = 0.69$ (di bawah ambang batas $0.85$), memastikan kestabilan estimasi koefisien pada model linier maupun ensemble.
     4. **Separabilitas Alami yang Jelas**: Reduksi dimensi PCA memperlihatkan bahwa ruang fitur kesiapan belajar memisahkan kelompok siswa efikasi diri tinggi dan rendah secara konsisten, menjamin kelayakan data untuk dipelajari oleh model *supervised learning*.
     5. **Konsistensi Profil Antar-Kelompok**: Siswa pada kelompok efikasi diri tinggi secara konsisten mencetak skor lebih tinggi di seluruh subskala kesiapan belajar (*pola bertingkat yang seragam*).
