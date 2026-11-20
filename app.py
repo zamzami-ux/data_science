@@ -5,6 +5,57 @@ siswa SMP dan SMA di Indonesia berdasarkan domain kesiapan belajar.
 """
 
 import os
+import sys
+
+# ==============================================================================
+# AUTO-BOOTSTRAP / AUTO-LAUNCHER
+# Memungkinkan eksekusi langsung via perintah: python app.py
+# Otomatis menjalankan server Streamlit, membuka browser, dan mengakses http://localhost:8501
+# ==============================================================================
+try:
+    from streamlit.runtime import exists as _st_exists
+    _in_streamlit = _st_exists()
+except Exception:
+    _in_streamlit = False
+
+if not _in_streamlit:
+    import threading
+    import time
+    import webbrowser
+    from streamlit.web import cli as stcli
+
+    _target_script = os.path.abspath(__file__)
+    _port = "8501"
+    _url = f"http://localhost:{_port}"
+
+    def _launch_browser():
+        time.sleep(1.2)
+        try:
+            webbrowser.open(_url)
+        except Exception:
+            pass
+
+    # Buka browser secara otomatis di background
+    threading.Thread(target=_launch_browser, daemon=True).start()
+
+    # Jalankan Streamlit CLI
+    sys.argv = [
+        "streamlit",
+        "run",
+        _target_script,
+        f"--server.port={_port}",
+        "--server.headless=false",
+        "--browser.gatherUsageStats=false"
+    ]
+    try:
+        sys.exit(stcli.main())
+    except SystemExit:
+        raise
+    except Exception:
+        import subprocess
+        subprocess.run([sys.executable, "-m", "streamlit", "run", _target_script, f"--server.port={_port}", "--server.headless=false"])
+        sys.exit(0)
+
 import io
 import re
 import numpy as np

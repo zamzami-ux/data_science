@@ -59,10 +59,15 @@ pip install -r requirements.txt
 ```
 
 ### 4. Jalankan Aplikasi
+Cukup eksekusi perintah Python berikut di terminal:
 ```bash
-streamlit run app.py
+python app.py
 ```
-Aplikasi akan terbuka otomatis di browser Anda di `http://localhost:8501`.
+*(Atau di Windows, cukup klik dua kali berkas `run.bat`)*
+
+Sistem akan otomatis menjalankan server Streamlit, membuka penjelajah web (browser), dan langsung mengarahkan Anda ke `http://localhost:8501`.
+
+*(Catatan: Anda juga tetap bisa menjalankannya dengan perintah standar `streamlit run app.py`)*
 
 ---
 
